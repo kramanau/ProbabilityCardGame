@@ -24,6 +24,7 @@ class card(object):
     color = ""
     suit = ""
     picture = ""
+    played = False
 
     def __init__(self, value, color, suit, picture):
         self.value = value
@@ -32,13 +33,25 @@ class card(object):
         self.picture = picture
 
 for num in range(0,13):
-    deck[num] = card(num + 1, "black", "club", pygame.image.load('club'+str(num)+'.png'))
+    if(num == 10 or num == 11 or num == 12):
+        deck[num] = card(10, "black", "club", pygame.image.load('club'+str(num)+'.png'))
+    else:
+        deck[num] = card(num + 1, "black", "club", pygame.image.load('club'+str(num)+'.png'))
 for num in range(13,26):
-    deck[num] = card(num - 12, "black", "spade" ,pygame.image.load('spade'+str(num)+'.png'))
+    if(num == 23 or num == 24 or num == 25):
+        deck[num] = card(10, "black", "spade" ,pygame.image.load('spade'+str(num)+'.png'))
+    else:
+        deck[num] = card(num - 12, "black", "spade" ,pygame.image.load('spade'+str(num)+'.png'))
 for num in range(26,39):
-    deck[num] = card(num - 25, "red", "heart", pygame.image.load('heart'+str(num)+'.png'))
+    if(num == 36 or num == 37 or num == 38):
+        deck[num] = card(10, "red", "heart", pygame.image.load('heart'+str(num)+'.png'))
+    else:
+        deck[num] = card(num - 25, "red", "heart", pygame.image.load('heart'+str(num)+'.png'))
 for num in range(39,52):
-    deck[num] = card(num - 38, "red", "diamond", pygame.image.load('diamond'+str(num)+'.png'))
+    if(num == 49 or num == 50 or num == 51):
+        deck[num] = card(10, "red", "diamond", pygame.image.load('diamond'+str(num)+'.png'))
+    else:
+        deck[num] = card(num - 38, "red", "diamond", pygame.image.load('diamond'+str(num)+'.png'))
 
 ##GAMEWINDOW+CLOCK##
 gameDisplay = pygame.display.set_mode((display_width,display_height))
@@ -73,6 +86,9 @@ def textButton(text,xloc,yloc,width,height,action=None):
     if xloc+width > mouse[0] > xloc and yloc+height > mouse[1] > yloc:
         if click[0] == 1 and action != None:
             action()
+
+def colorBox(xloc,yloc,width,height,color):
+    pygame.draw.rect(gameDisplay,color,(xloc,yloc,width,height))
 
 def textBox(text,xloc,yloc,width,height,color, fcolor):
     pygame.draw.rect(gameDisplay, color, (xloc,yloc,width,height))
@@ -168,21 +184,123 @@ def redOrBlack():
         clock.tick(30)
     return
 
+##DEALING PROMPT
+def dealing():
+    dealing = True
+    while dealing:
+        textBox("Dealing . . .", display_width/2 - 137.5, display_height/2 - 75, 275, 75, black, white)
+        pygame.display.update()
+        clock.tick(30)
+        dealing = False
+        time.sleep(1)
+    return
+
+def updateScore(pScore,dScore):
+    textBox("You: " + str(pScore),100,200,200,100,white,black)
+    textBox("Dealer: " + str(dScore),500,200,200,100,white,black)
+
+def updateDecks(playerDeck,dealerDeck,pdealtCards,ddealtCards):
+    for num in range(0,pdealtCards):
+        gameDisplay.blit(playerDeck[num].picture,(180 + (num * 20),360))
+    for num in range(0,ddealtCards):
+        gameDisplay.blit(dealerDeck[num].picture,(180 + (num * 20),60))
+
 ##TWENTY ONE GAME
 def twenty_one():
+    playerDeck = [card] * 21
+    dealerDeck = [card] * 21
+    pdealtCards = 0
+    ddealtCards = 0
+    playerScore = 0
+    stood = False
+    newGame = True
+    dealerScore = 0
     running = True
     while running:
+        gameDisplay.blit(felt,(0,0))
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 quit()
         mouse = pygame.mouse.get_pos()
         click = pygame.mouse.get_pressed()
-        gameDisplay.blit(felt,(0,0))
+        gameDisplay.blit(pygame.transform.scale(carddeck,(120,145)),(display_width/2 - 60, display_height/2 - 112))
         textBox("Back", display_width /2 - 50, display_height - 100, 100, 100, grey, white)
         if (((display_width / 2 - 50) + 100> mouse[0] > (display_width /2 - 50)) and ((display_height - 100) + 100 > mouse[1] > (display_height - 100))):
             if click[0] == 1:
                 running = False
+        colorBox(150,350,500,125,green)
+        colorBox(150,50,500,125,red)
+        textBox("Hit",175,485,125,100, white, black)
+        textBox("Stand", display_width - 300, 485, 125, 100, white, black)
+        if(newGame):
+            stood = False
+            playerDeck = [card] * 21
+            dealerDeck = [card] * 21
+            dealing()
+            playerDeck[0] = deck[randomCard()]
+            playerDeck[1] = deck[randomCard()]
+            pdealtCards = 2
+            dealerDeck[0] = deck[randomCard()]
+            ddealtCards = 1
+            playerScore = playerDeck[0].value + playerDeck[1].value
+            dealerScore = dealerDeck[0].value + dealerDeck[1].value
+            newGame = False
+
+        updateScore(playerScore,dealerScore)
+        updateDecks(playerDeck,dealerDeck,pdealtCards,ddealtCards)
+
+        if((175 + 125 > mouse[0] > 175) and (485 + 100> mouse[1] > 485)):
+            if click[0] == 1:
+                playerDeck[pdealtCards] = deck[randomCard()]
+                playerScore += playerDeck[pdealtCards].value
+                pdealtCards += 1
+                time.sleep(.5)
+
+        if(playerScore > 21):
+            updateDecks(playerDeck,dealerDeck,pdealtCards,ddealtCards)
+            updateScore(playerScore,dealerScore)
+            textBox("Dealer Wins", display_width/2 - 137.5, display_height/2 - 75, 275, 75, black, white)
+            pygame.display.update()
+            time.sleep(1)
+            newGame = True
+
+        if(playerScore == 21):
+            updateDecks(playerDeck,dealerDeck,pdealtCards,ddealtCards)
+            updateScore(playerScore,dealerScore)
+            textBox("You Win!", display_width/2 - 137.5, display_height/2 - 75, 275, 75, black, white)
+            pygame.display.update()
+            time.sleep(1)
+            newGame = True
+
+        if((display_width - 300 + 125 > mouse[0] > display_width - 300) and (485 + 100> mouse[1] > 485)):
+            if click[0] == 1:
+                stood = True
+                while(dealerScore < playerScore):
+                    dealerDeck[ddealtCards] = deck[randomCard()]
+                    dealerScore += dealerDeck[ddealtCards].value
+                    ddealtCards += 1
+                    updateDecks(playerDeck,dealerDeck,pdealtCards,ddealtCards)
+                    updateScore(playerScore,dealerScore)
+                    pygame.display.update()
+                    time.sleep(.5)
+
+        if(dealerScore > 21):
+            textBox("You Win!", display_width/2 - 137.5, display_height/2 - 75, 275, 75, black, white)
+            pygame.display.update()
+            time.sleep(1)
+            newGame = True
+        elif(stood and dealerScore > playerScore):
+            textBox("Dealer Wins", display_width/2 - 137.5, display_height/2 - 75, 275, 75, black, white)
+            pygame.display.update()
+            time.sleep(1)
+            newGame = True
+        elif(stood and dealerScore == playerScore):
+            textBox("Push", display_width/2 - 137.5, display_height/2 - 75, 275, 75, black, white)
+            pygame.display.update()
+            time.sleep(1)
+            newGame = True
+
         pygame.display.update()
         clock.tick(30)
     return
